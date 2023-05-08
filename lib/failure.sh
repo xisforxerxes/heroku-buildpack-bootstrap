@@ -279,12 +279,10 @@ warn_missing_devdeps() {
 
   if grep -qi 'cannot find module' "$log_file"; then
     warning "A module may be missing from 'dependencies' in package.json" "https://devcenter.heroku.com/articles/troubleshooting-node-deploys#ensure-you-aren-t-relying-on-untracked-dependencies"
-    mcount 'warnings.modules.missing'
     if [ "$NPM_CONFIG_PRODUCTION" == "true" ]; then
       dev_deps=$(read_json "$build_dir/package.json" ".devDependencies")
       if [ "$dev_deps" != "" ]; then
         warning "This module may be specified in 'devDependencies' instead of 'dependencies'" "https://devcenter.heroku.com/articles/nodejs-support#devdependencies"
-        mcount 'warnings.modules.devdeps'
       fi
     fi
   fi
@@ -299,7 +297,6 @@ warn_no_start() {
     if [ "$start_script" == "" ]; then
       if ! [ -e "$build_dir/server.js" ]; then
         warn "This app may not specify any way to start a node process" "https://devcenter.heroku.com/articles/nodejs-support#default-web-process-type"
-        mcount 'warnings.unstartable'
       fi
     fi
   fi
@@ -309,7 +306,6 @@ warn_econnreset() {
   local log_file="$1"
   if grep -qi 'econnreset' "$log_file"; then
     warning "ECONNRESET issues may be related to npm versions" "https://github.com/npm/registry/issues/10#issuecomment-217141066"
-    mcount 'warnings.econnreset'
   fi
 }
 
@@ -321,6 +317,5 @@ warn_unmet_dep() {
 
   if grep -qi 'unmet dependency' "$log_file" || grep -qi 'unmet peer dependency' "$log_file"; then
     warn "Unmet dependencies don't fail $package_manager install but may cause runtime issues" "https://github.com/npm/npm/issues/7494"
-    mcount 'warnings.modules.unmet'
   fi
 }
