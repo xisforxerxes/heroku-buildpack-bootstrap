@@ -19,7 +19,7 @@ error() {
 	exit 1
 }
 
-if [ -f "$1/package.json" ]; then
+if [ ! -f "$1/package.json" ]; then
   echo 'Node.js'
   exit 0
 fi
