@@ -36,6 +36,14 @@ echo "" > "$LOG_FILE"
 
 git log | cat
 
+git version
+
+git status
+
+git branch
+
+git remote
+
 ### Handle errors
 
 handle_failure() {
