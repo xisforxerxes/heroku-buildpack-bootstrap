@@ -95,7 +95,7 @@ install_pnpm() {
 }
 
 install_nx() {
-  pnpm install -g -D nx
+  npm install -g -D nx
   # Verify nx works before capturing and ensure its stderr is inspectable later.
   nx --version 2>&1 1>/dev/null
   echo "nx $(nx --version) installed"
