@@ -41,7 +41,6 @@ handle_failure() {
   fail_node_install "$LOG_FILE" "$BUILD_DIR"
   fail_invalid_semver "$LOG_FILE"
   warn_aws_proxy "$BUILD_DIR"
-  warn_untracked_dependencies "$LOG_FILE"
   warn_missing_devdeps "$LOG_FILE" "$BUILD_DIR"
   warn_econnreset "$LOG_FILE"
   failure_message | output "$LOG_FILE"
@@ -100,8 +99,7 @@ header "Installing binaries" | output "$LOG_FILE"
 install_bins | output "$LOG_FILE"
 
 restore_cache() {
-  local cache_status cache_directories restore_cache_start_time
-  restore_cache_start_time=$(nowms)
+  local cache_status cache_directories
 
   cache_status="$(get_cache_status "$CACHE_DIR")"
   cache_directories="$(get_cache_directories "$BUILD_DIR")"
