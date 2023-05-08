@@ -3,6 +3,12 @@
 # Compiled from: https://github.com/heroku/buildpacks-nodejs/blob/main/common/nodejs-utils/src/bin/resolve_version.rs
 RESOLVE="$BP_DIR/lib/vendor/resolve-version-$(get_os)"
 
+# Indents output to align to heroku established conventions.
+#   See: https://devcenter.heroku.com/articles/buildpack-api#bin-compile-example
+indent() {
+    sed -u 's/^/      /'
+}
+
 resolve() {
   local binary="$1"
   local versionRequirement="$2"
@@ -61,6 +67,8 @@ install_nodejs() {
   chmod +x "$dir"/bin/*
 }
 
+printenv
+
 install_npm() {
   local npm_version
   local version="$1"
@@ -88,14 +96,14 @@ install_pnpm() {
   local pnpm_version
   local version="$1"
 
-  npm install -g -D "pnpm@${version:-latest}"
+  npm install -g -D "pnpm@${version:-latest}" | indent
   # Verify pnpm works before capturing and ensure its stderr is inspectable later.
   pnpm --version 2>&1 1>/dev/null
   echo "pnpm $(pnpm --version) installed"
 }
 
 install_nx() {
-  npm install -g -D nx
+  npm install -g -D nx | indent
   # Verify nx works before capturing and ensure its stderr is inspectable later.
   nx --version 2>&1 1>/dev/null
   echo "nx $(nx --version) installed"
