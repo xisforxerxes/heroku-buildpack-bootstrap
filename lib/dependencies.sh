@@ -16,7 +16,8 @@ pnpm_node_modules() {
 
   if [ -e "$build_dir/package.json" ]; then
     cd "$build_dir" || return
-    pnpm install "${production:+"--prod"}" 2>&1
+    # N.B. you must not use double quotes here.
+    pnpm install ${production:+"--prod"} 2>&1
   else
     echo "Skipping (no package.json)"
   fi
