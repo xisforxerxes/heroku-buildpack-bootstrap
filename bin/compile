@@ -5,7 +5,7 @@
 
 set -o errexit    # always exit on error
 set -o pipefail   # don't ignore exit codes when piping output
-unset GIT_DIR     # Avoid GIT_DIR leak from previous build steps
+# unset GIT_DIR     # Avoid GIT_DIR leak from previous build steps
 
 [ "$BUILDPACK_XTRACE" ] && set -o xtrace
 
@@ -102,8 +102,7 @@ install_bins | output "$LOG_FILE"
 
 printenv
 
-echo "$BUILD_DIR"
-find / | grep '[.]git'
+git --git-dir="$GIT_DIR" log
 
 
 
