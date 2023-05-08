@@ -88,7 +88,7 @@ install_pnpm() {
   local pnpm_version
   local version="$1"
 
-  npm install --no-save "pnpm@${version:-latest}"
+  npm install -g --no-save "pnpm@${version:-latest}"
   # Verify pnpm works before capturing and ensure its stderr is inspectable later
   pnpm --version 2>&1 1>/dev/null
   echo "pnpm $(pnpm --version) installed"

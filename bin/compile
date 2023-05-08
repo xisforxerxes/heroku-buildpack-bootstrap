@@ -39,7 +39,6 @@ echo "" > "$LOG_FILE"
 handle_failure() {
   header "Build failed"
   fail_node_install "$LOG_FILE" "$BUILD_DIR"
-  fail_yarn_install "$LOG_FILE" "$BUILD_DIR"
   fail_invalid_semver "$LOG_FILE"
   warn_aws_proxy "$BUILD_DIR"
   warn_untracked_dependencies "$LOG_FILE"
