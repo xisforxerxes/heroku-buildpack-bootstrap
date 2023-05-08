@@ -1,0 +1,199 @@
+#!/usr/bin/env bash
+# bin/compile <build-dir> <cache-dir> <env-dir>
+
+### Configure environment
+
+set -o errexit    # always exit on error
+set -o pipefail   # don't ignore exit codes when piping output
+unset GIT_DIR     # Avoid GIT_DIR leak from previous build steps
+
+[ "$BUILDPACK_XTRACE" ] && set -o xtrace
+
+### Constants
+
+### Configure directories
+
+BUILD_DIR=${1:-}
+CACHE_DIR=${2:-}
+ENV_DIR=${3:-}
+BP_DIR=$(cd "$(dirname "${0:-}")"; cd ..; pwd)
+
+### Load dependencies
+
+source "$BP_DIR/lib/output.sh"
+source "$BP_DIR/lib/environment.sh"
+source "$BP_DIR/lib/failure.sh"
+source "$BP_DIR/lib/binaries.sh"
+source "$BP_DIR/lib/json.sh"
+source "$BP_DIR/lib/cache.sh"
+source "$BP_DIR/lib/dependencies.sh"
+source "$BP_DIR/lib/plugin.sh"
+
+export PATH="$BUILD_DIR/.heroku/node/bin":$PATH
+
+LOG_FILE=$(mktemp -t node-build-log.XXXXX)
+echo "" > "$LOG_FILE"
+
+### Handle errors
+
+handle_failure() {
+  header "Build failed"
+  fail_node_install "$LOG_FILE" "$BUILD_DIR"
+  fail_yarn_install "$LOG_FILE" "$BUILD_DIR"
+  fail_invalid_semver "$LOG_FILE"
+  warn_aws_proxy "$BUILD_DIR"
+  warn_untracked_dependencies "$LOG_FILE"
+  warn_missing_devdeps "$LOG_FILE" "$BUILD_DIR"
+  warn_econnreset "$LOG_FILE"
+  failure_message | output "$LOG_FILE"
+}
+trap 'handle_failure' ERR
+
+
+### Failures that should be caught immediately
+
+fail_prebuilt "$BUILD_DIR"
+fail_dot_heroku "$BUILD_DIR"
+fail_dot_heroku_node "$BUILD_DIR"
+fail_invalid_package_json "$BUILD_DIR"
+fail_multiple_lockfiles "$BUILD_DIR"
+warn_prebuilt_modules "$BUILD_DIR"
+warn_missing_package_json "$BUILD_DIR"
+
+### Compile
+
+create_env() {
+  write_profile "$BP_DIR" "$BUILD_DIR"
+  write_export "$BP_DIR" "$BUILD_DIR"
+  export_env_dir "$ENV_DIR"
+  create_default_env
+}
+
+header "Creating runtime environment" | output "$LOG_FILE"
+
+mkdir -p "$BUILD_DIR/.heroku/node/"
+cd "$BUILD_DIR"
+# can't pipe the whole thing because piping causes subshells, preventing exports
+create_env
+list_node_config | output "$LOG_FILE"
+create_build_env
+
+install_bins() {
+  local node_engine npm_engine yarn_engine npm_version node_version
+
+  node_engine=$(read_json "$BUILD_DIR/package.json" ".engines.node")
+  npm_engine=$(read_json "$BUILD_DIR/package.json" ".engines.npm")
+  pnpm_engine=$(read_json "$BUILD_DIR/package.json" ".engines.pnpm")
+
+  echo "engines.node (package.json):  ${node_engine:-unspecified}"
+  echo "engines.npm (package.json):   ${npm_engine:-unspecified (use default)}"
+  echo "engines.pnpm (package.json):  ${pnpm_engine:-unspecified (use default)}"
+  echo ""
+
+  warn_node_engine "$node_engine"
+
+  install_nodejs "$node_engine" "$BUILD_DIR/.heroku/node"
+  install_npm "$npm_engine" "$BUILD_DIR/.heroku/node"
+  install_pnpm "$pnpm_engine"
+}
+
+header "Installing binaries" | output "$LOG_FILE"
+install_bins | output "$LOG_FILE"
+
+restore_cache() {
+  local cache_status cache_directories restore_cache_start_time
+  restore_cache_start_time=$(nowms)
+
+  cache_status="$(get_cache_status "$CACHE_DIR")"
+  cache_directories="$(get_cache_directories "$BUILD_DIR")"
+
+  if [[ "$cache_status" == "disabled" ]]; then
+    header "Restoring cache"
+    echo "Caching has been disabled because NODE_MODULES_CACHE=${NODE_MODULES_CACHE}"
+  elif [[ "$cache_status" == "valid" ]]; then
+    header "Restoring cache"
+    if [[ "$cache_directories" == "" ]]; then
+      restore_default_cache_directories "$BUILD_DIR" "$CACHE_DIR" "$YARN_CACHE_FOLDER" "$NPM_CONFIG_CACHE"
+    else
+      restore_custom_cache_directories "$BUILD_DIR" "$CACHE_DIR" "$cache_directories"
+    fi
+  elif [[ "$cache_status" == "new-signature" ]]; then
+    header "Restoring cache"
+    if [[ "$cache_directories" == "" ]]; then
+      echo "Cached directories were not restored due to a change in version of node, npm, yarn or stack"
+      echo "Module installation may take longer for this build"
+    else
+      # If the user has specified custom cache directories, be more explicit
+      echo "Invalidating cache due to a change in version of node, npm, yarn or stack"
+      echo "Will not restore the following directories for this build:"
+      for directory in $cache_directories; do
+        echo "  $directory"
+      done
+    fi
+  else
+    # No cache exists, be silent
+    :
+  fi
+}
+
+restore_cache | output "$LOG_FILE"
+
+build_dependencies() {
+  local cache_status start
+
+  cache_status="$(get_cache_status "$CACHE_DIR")"
+  npm_node_modules "$BUILD_DIR"
+  fi
+
+  header "Build"
+  run_build_script "$BUILD_DIR"
+}
+
+run_prebuild_script "$BUILD_DIR" | output "$LOG_FILE"
+header "Installing dependencies" | output "$LOG_FILE"
+build_dependencies | output "$LOG_FILE"
+
+cache_build() {
+  local cache_directories cache_build_start_time
+  cache_build_start_time=$(nowms)
+  cache_directories="$(get_cache_directories "$BUILD_DIR")"
+
+  clear_cache "$CACHE_DIR"
+  if ! ${NODE_MODULES_CACHE:-true}; then
+    # we've already warned that caching is disabled in the restore step
+    # so be silent here
+    :
+  elif [[ "$cache_directories" == "" ]]; then
+    header "Caching build"
+    save_default_cache_directories "$BUILD_DIR" "$CACHE_DIR" "$NPM_CONFIG_CACHE"
+  else
+    header "Caching build"
+    save_custom_cache_directories "$BUILD_DIR" "$CACHE_DIR" "$cache_directories"
+  fi
+  save_signature "$CACHE_DIR"
+  meta_time "save-cache-time" "$cache_build_start_time"
+}
+
+prune_devdependencies() {
+  pnpm_prune_devdependencies "$BUILD_DIR"
+}
+
+cache_build | output "$LOG_FILE"
+header "Pruning devDependencies" | output "$LOG_FILE"
+prune_devdependencies | output "$LOG_FILE"
+
+run_cleanup_script "$BUILD_DIR" | output "$LOG_FILE"
+
+summarize_build() {
+  if $NODE_VERBOSE; then
+    list_dependencies "$BUILD_DIR"
+  fi
+}
+
+install_plugin "$BP_DIR" "$BUILD_DIR"
+
+header "Build succeeded!" | output "$LOG_FILE"
+summarize_build | output "$LOG_FILE"
+
+warn_no_start "$BUILD_DIR"
+warn_unmet_dep "$LOG_FILE"
