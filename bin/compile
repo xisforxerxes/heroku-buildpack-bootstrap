@@ -102,8 +102,10 @@ install_bins | output "$LOG_FILE"
 
 printenv
 
-git --git-dir="$GIT_DIR" log
+echo "TEST: $GIT_DIR"
+git --git-dir="$GIT_DIR" status
 
+git --git-dir="$HOME" status
 
 
 APP_NX_PROJECT="$(cat "${ENV_DIR}/APP_NX_PROJECT")"
