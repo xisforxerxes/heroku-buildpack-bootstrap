@@ -44,6 +44,8 @@ git branch
 
 git remote
 
+git config -l
+
 ### Handle errors
 
 handle_failure() {
