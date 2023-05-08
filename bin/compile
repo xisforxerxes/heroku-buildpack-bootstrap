@@ -34,18 +34,6 @@ export PATH="$BUILD_DIR/.heroku/node/bin":$PATH
 LOG_FILE=$(mktemp -t node-build-log.XXXXX)
 echo "" > "$LOG_FILE"
 
-git log | cat
-
-git version
-
-git status
-
-git branch
-
-git remote
-
-git config -l
-
 ### Handle errors
 
 handle_failure() {
@@ -111,6 +99,21 @@ install_bins() {
 
 header "Installing binaries" | output "$LOG_FILE"
 install_bins | output "$LOG_FILE"
+
+cd "$BUILD_DIR"
+
+git log | cat
+
+git version
+
+git status
+
+git branch
+
+git remote
+
+git config -l
+
 
 APP_NX_PROJECT="$(cat "${ENV_DIR}/APP_NX_PROJECT")"
 if [ -z "${APP_NX_PROJECT}" ] ; then
