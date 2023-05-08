@@ -51,6 +51,7 @@ trap 'handle_failure' ERR
 ### Failures that should be caught immediately
 
 fail_prebuilt "$BUILD_DIR"
+fail_no_nx_workspace "$BUILD_DIR"
 fail_dot_heroku "$BUILD_DIR"
 fail_dot_heroku_node "$BUILD_DIR"
 fail_invalid_package_json "$BUILD_DIR"
@@ -93,10 +94,23 @@ install_bins() {
   install_nodejs "$node_engine" "$BUILD_DIR/.heroku/node"
   install_npm "$npm_engine" "$BUILD_DIR/.heroku/node"
   install_pnpm "$pnpm_engine"
+  install_nx
 }
 
 header "Installing binaries" | output "$LOG_FILE"
 install_bins | output "$LOG_FILE"
+
+APP_NX_PROJECT="$(cat "${ENV_DIR}/APP_NX_PROJECT")"
+if [ -z "${APP_NX_PROJECT}" ] ; then
+    header "Build failed"
+    error "APP_NX_PROJECT must be defined in the application environment and non-empty. Aborting"
+    fail
+fi
+
+if [ -z "${AFFECTED}" ] ; then
+    warn "Terminating deployment of an uninteresting change. Project: ${APP_NX_PROJECT} is not affected."
+    fail
+fi
 
 restore_cache() {
   local cache_status="$(get_cache_status "$CACHE_DIR")"
@@ -122,10 +136,11 @@ restore_cache | output "$LOG_FILE"
 build_dependencies() {
   local cache_status start
   pnpm_node_modules "$BUILD_DIR"
+  nx build "${APP_NX_PROJECT}"
 }
 
 header "Installing dependencies" | output "$LOG_FILE"
-#build_dependencies | output "$LOG_FILE"
+build_dependencies | output "$LOG_FILE"
 
 cache_build() {
   clear_cache "$CACHE_DIR"

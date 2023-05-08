@@ -36,15 +36,23 @@ failure_message() {
   echo ""
 }
 
-fail_prebuilt() {
-    if [ -e "${1:-}/node_modules" ]; then
-      header "Build failed"
-      warn "Prebuilt configurations are not supported in this build pack.
+fail_no_nx_workspace() {
+  if [ ! -f "${1:-}/nx.json" ] ; then
+    header "Build failed"
+    error "Unable to locate nx.json. Must be built in an NX workspace."
+    fail
+  fi
+}
 
-         It looks like node_modules is checked into this project. It should be
-         placed in .gitignore or added to .slugignore
-         "
-      fail
+fail_prebuilt() {
+  if [ -e "${1:-}/node_modules" ]; then
+    header "Build failed"
+    error "Prebuilt configurations are not supported in this build pack.
+
+       It looks like node_modules is checked into this project. It should be
+       placed in .gitignore or added to .slugignore
+       "
+    fail
   fi
 }
 

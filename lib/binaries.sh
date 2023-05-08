@@ -88,14 +88,14 @@ install_pnpm() {
   local pnpm_version
   local version="$1"
 
-  npm install -g --no-save "pnpm@${version:-latest}"
+  npm install -g -D "pnpm@${version:-latest}"
   # Verify pnpm works before capturing and ensure its stderr is inspectable later.
   pnpm --version 2>&1 1>/dev/null
   echo "pnpm $(pnpm --version) installed"
 }
 
 install_nx() {
-  pnpm install -g nx
+  pnpm install -g -D nx
   # Verify nx works before capturing and ensure its stderr is inspectable later.
   nx --version 2>&1 1>/dev/null
   echo "nx $(nx --version) installed"
