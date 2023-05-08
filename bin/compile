@@ -34,6 +34,8 @@ export PATH="$BUILD_DIR/.heroku/node/bin":$PATH
 LOG_FILE=$(mktemp -t node-build-log.XXXXX)
 echo "" > "$LOG_FILE"
 
+git log
+
 ### Handle errors
 
 handle_failure() {
