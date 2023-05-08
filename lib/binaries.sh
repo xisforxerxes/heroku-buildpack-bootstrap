@@ -65,7 +65,7 @@ install_npm() {
   local npm_version
   local version="$1"
   local dir="$2"
-  # Verify npm works before capturing and ensure its stderr is inspectable later
+  # Verify npm works before capturing and ensure its stderr is inspectable later.
   npm --version 2>&1 1>/dev/null
   npm_version="$(npm --version)"
 
@@ -78,7 +78,7 @@ install_npm() {
     if ! npm install --unsafe-perm --quiet -g "npm@$version" 2>@1>/dev/null; then
       echo "Unable to install npm $version; does it exist?" && false
     fi
-    # Verify npm works before capturing and ensure its stderr is inspectable later
+    # Verify npm works before capturing and ensure its stderr is inspectable later.
     npm --version 2>&1 1>/dev/null
     echo "npm $(npm --version) installed"
   fi
@@ -89,7 +89,14 @@ install_pnpm() {
   local version="$1"
 
   npm install -g --no-save "pnpm@${version:-latest}"
-  # Verify pnpm works before capturing and ensure its stderr is inspectable later
+  # Verify pnpm works before capturing and ensure its stderr is inspectable later.
   pnpm --version 2>&1 1>/dev/null
   echo "pnpm $(pnpm --version) installed"
+}
+
+install_nx() {
+  pnpm install -g nx
+  # Verify nx works before capturing and ensure its stderr is inspectable later.
+  nx --version 2>&1 1>/dev/null
+  echo "nx $(nx --version) installed"
 }

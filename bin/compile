@@ -121,13 +121,11 @@ restore_cache | output "$LOG_FILE"
 
 build_dependencies() {
   local cache_status start
-
-  cache_status="$(get_cache_status "$CACHE_DIR")"
   pnpm_node_modules "$BUILD_DIR"
 }
 
 header "Installing dependencies" | output "$LOG_FILE"
-build_dependencies | output "$LOG_FILE"
+#build_dependencies | output "$LOG_FILE"
 
 cache_build() {
   clear_cache "$CACHE_DIR"
