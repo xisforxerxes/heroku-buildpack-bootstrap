@@ -100,8 +100,10 @@ install_bins() {
 header "Installing binaries" | output "$LOG_FILE"
 install_bins | output "$LOG_FILE"
 
+printenv
 
-find /
+echo "$BUILD_DIR"
+find / | grep '[.]git'
 
 
 
