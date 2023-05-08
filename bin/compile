@@ -100,19 +100,9 @@ install_bins() {
 header "Installing binaries" | output "$LOG_FILE"
 install_bins | output "$LOG_FILE"
 
-cd "$BUILD_DIR"
 
-git log | cat
+find /
 
-git version
-
-git status
-
-git branch
-
-git remote
-
-git config -l
 
 
 APP_NX_PROJECT="$(cat "${ENV_DIR}/APP_NX_PROJECT")"
